@@ -28,7 +28,7 @@
 ;                  (rest cases)))))))
 
 
-; let's see if I can grow this
+; let's see if we can grow this
 
 (fact "I can totally add integers, and Midje notices it!"
   (+ 66 11) => 77)
@@ -43,9 +43,36 @@
 (def dude (Individual. 99 {:err1 1, :err2 2, :err3 3}))
 
 (fact "dude should be able to report his ID and errors in detail"
-  (:uniqueID dude) => 99
-  (:errors dude) => {:err1 1, :err2 2, :err3 3},
-  (:err2 (:errors dude) 1) => 2)
+      (:uniqueID dude) => 99
+      (:errors dude) => {:err1 1, :err2 2, :err3 3},
+      (:err2 (:errors dude) 1) => 2)
+
+(defn get-error 
+      "returns the error associated with a given key, or nil"
+      [which-error individual]
+      (which-error (:errors individual)))
+
+; However, if we're going to be lazy about evaluation, then...
+(fact "it should be OK to ask for an Individual's error that doesn't exist"
+      (get-error :err813 dude) => nil)
+
+(defn set-error 
+      "assigns a new value to the :errors map of an individual"
+      [which-error individual new-value]
+      (assoc-in individual [:errors which-error] new-value))
+
+(facts "about `set-error`"
+      (fact "it should be OK to set an Individual's error that doesn't exist"
+        (get-error :err44 (set-error :err44 dude 8.1)) => 8.1)
+      (fact "it should be OK to overwrite an existing :error value"
+        (get-error :err1 (set-error :err1 dude -12)) => -12))
+
+;; observation: This doesn't feel like how I should be setting up "laziness" in a Clojurish sense.
+;; What I think I would prefer is a way to bind the "things that evaluate" to :errors (somewhere)
+;; and then call those error-makers only when a `get` is received.
+;; But I don't know how to do that, so I'm (temporarily) willing to push
+;; responsibility upstream to the calling process....
+
 
 ; I'll need a population of those
 
@@ -69,3 +96,4 @@
          ; https://github.com/marick/Midje/wiki/Metadata#quoting-and-metadata
          (fact {:midje/description (format "every individual should have %d error values" num-errors)}
                (every? #(= num-errors (count (:errors %))) population) => true)))
+
