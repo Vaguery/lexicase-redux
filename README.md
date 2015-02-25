@@ -8,7 +8,6 @@ This is looking like it'll end up as a bunch of interactive design spikes.
 
 1. navigate to project directory
 2. `lein repl`
-3. `(use 'lexicase-redux.core)`
 4. `(use 'midje.repl)`
 5. `(autotest)`
 6. edit the source code in `src/lexicase_redux/core.clj`
