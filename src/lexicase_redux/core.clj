@@ -33,6 +33,9 @@
 (fact "I can totally add integers, and Midje notices it!"
   (+ 66 11) => 77)
 
+; Taken from https://gist.github.com/gorsuch/1418850
+(defn uuid []
+  (str (java.util.UUID/randomUUID)))
 
 ; I'll need an individual proxy, with some errors
 (defrecord Individual [uniqueID errors])
