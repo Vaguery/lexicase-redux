@@ -10,11 +10,11 @@
 ;   (let [lower (mod (- location trivial-geography-radius) (count pop))
 ;         upper (mod (+ location trivial-geography-radius) (count pop))
 ;         popvec (vec pop)
-;         subpop (if (zero? trivial-geography-radius) 
+;         subpop (if (zero? trivial-geography-radius)
 ;                  pop
 ;                  (if (< lower upper)
 ;                    (subvec popvec lower (inc upper))
-;                    (into (subvec popvec lower (count pop)) 
+;                    (into (subvec popvec lower (count pop))
 ;                          (subvec popvec 0 (inc upper)))))]
 ;     (loop [survivors (retain-one-individual-per-error-vector subpop)
 ;            cases (lshuffle (range (count (:errors (first subpop)))))]
@@ -33,6 +33,9 @@
 (fact "I can totally add integers, and Midje notices it!"
   (+ 66 11) => 77)
 
+; Taken from https://gist.github.com/gorsuch/1418850
+(defn uuid []
+  (str (java.util.UUID/randomUUID)))
 
 ; I'll need an individual proxy, with some errors
 (defrecord Individual [uniqueID errors])
@@ -46,3 +49,23 @@
 
 ; I'll need a population of those
 
+; This just uses integers for the keys in the error vector. It's not
+; hard to turn those into keywords (like :err3) if we'd prefer.
+(defn make-random-dude [num-errors]
+  (Individual. (uuid)
+               (reduce #(assoc %1 %2 (rand-int 10)) {} (range num-errors))))
+
+(defn make-population [popsize num-errors]
+  (repeatedly popsize #(make-random-dude num-errors)))
+
+(facts "about `make-population`"
+       (let [popsize 100
+             num-errors 10
+             population (make-population popsize num-errors)]
+         (fact "every individual should have a different unique id"
+               (count (distinct (map :uniqueID population))) => popsize)
+         ; Because I wanted a computed description for this fact, I had to
+         ; use the :midje/description map entry.
+         ; https://github.com/marick/Midje/wiki/Metadata#quoting-and-metadata
+         (fact {:midje/description (format "every individual should have %d error values" num-errors)}
+               (every? #(= num-errors (count (:errors %))) population) => true)))
