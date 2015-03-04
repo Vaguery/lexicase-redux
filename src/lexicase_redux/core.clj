@@ -64,7 +64,8 @@
       (:script testing-dude) => "foo bar"
       (:errors testing-dude) => {})
 
-;; Errors and rubrics
+;; Errors and rubrics:
+;;
 ;; errors are created established by Rubrics, functions of an Individual
 ;; which return a numeric value
 ;; if a specified error doesn't have an associated Rubric, then the result is nil
@@ -86,56 +87,20 @@
       (integer? (random-rubric testing-dude)) => true)
 
 
+(fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
+      (false) => "not sure how to proceed")
 
-; (fact "an Individual's error can be set by a rubric, with the rubric name as a key")
-
-
-; (defn get-error 
-;       "returns the error associated with a given key, or nil"
-;       [which-error individual]
-;       (deref (which-error (:errors individual))))
-
-
-; (defn set-rubric
-;       "assigns a new rubric function to the :errors map of an individual"
-;       [which-error individual rubric]
-;       (assoc-in individual [:errors which-error] (future (rubric individual))))
-
-; ; (assoc-in dude [:errors :err999] 7)
-; ; (get-error :err999 dude)
-
-; ; However, if we're going to be lazy about evaluation, then...
-; ; (get-error :err813 dude)
-; (fact "it should be OK to ask for an Individual's error that doesn't exist because it'll be set"
-;   (let [dude (set-rubric :err813 dude (fn [_] 8.13))]
-;     (get-error :err813 dude) => 8.13))
-
-
-; (facts "about `set-rubric`"
-;       (fact "it should be OK to set an Individual's error that doesn't exist"
-;         (get-error :err44 (set-rubric :err44 dude (fn [_] 8.1))) => 8.1)
-;       (fact "it should be OK to overwrite an existing :error value"
-;         (get-error :err1 (set-rubric :err1 dude (fn [_] -12))) => -12))
-
-; ;; observation: This doesn't feel like how I should be setting up "laziness" in a Clojurish sense.
-; ;; What I think I would prefer is a way to bind the "things that evaluate" to :errors (somewhere)
-; ;; and then call those error-makers only when a `get` is received.
-; ;; But I don't know how to do that, so I'm (temporarily) willing to push
-; ;; responsibility upstream to the calling process....
-
-
-; ; I make 100 individuals
-; ;   they have no errors
-; ; I make 100 rubrics
-
-; ; I'll need a population of those
-
-; ; This just uses integers for the keys in the error vector. It's not
-; ; hard to turn those into keywords (like :err3) if we'd prefer.
-; (defn make-random-dude [num-errors]
-;   (Individual. (uuid)
-;                (reduce #(assoc %1 %2 (rand-int 10)) {} (range num-errors))))
-
-; ; (defn make-population [popsize num-errors]
-; ;   (repeatedly popsize #(make-random-dude num-errors)))
-
+;; An experiment in dumb-ass search:
+;;
+;; 1. I make 100 random individuals
+;; - they have no errors
+;; - they have executable scripts
+;; 2. I make 100 rubrics 
+;; - for 100 I/O training cases, for example
+;; - maybe also a script complexity one
+;; 3. using lexicase selection, I pick 2 "parents"
+;; - filling in the errors only as needed
+;; 4. I _add_ 2 new offspring to the population by random crossover of parents
+;; - they have no errors
+;; 5. GOTO 3
+;; - NOTE: no culling from the population!
