@@ -89,7 +89,31 @@
 (fact "applying the length-rubric to testing-dude should return a number"
       (integer? (random-rubric testing-dude)) => true)
 
-(println (run-push '(1 2 integer_add false true boolean_or "foo bar" string_length) (make-push-state)))
+
+
+;; "convenience function" for setting up push interpreter with inputs...
+(defn load-an-arg [arg my-state]
+  (push-item arg :input my-state))
+
+(defn build-loaded-push-state [inputs]
+      "returns a push-state with specified arguments in :input stack (in order)"
+      (reduce 
+        (fn [the-state the-input] (load-an-arg the-input the-state))
+        (make-push-state)
+        inputs))
+
+(fact "I can create a push-state with one argument on the :input stack"
+      (:input (load-an-arg 1 (make-push-state))) => (just [1]))
+
+(fact "I can create a push-state with loads of arguments"
+      (:input (build-loaded-push-state [1 2 3])) => (just [3 2 1])
+      (:input (build-loaded-push-state [1 -1.3 false])) => (just [false -1.3 1])
+      (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
+      )
+
+(fact "I can create a push-state with code points as arguments"
+      "as it happens" => "I don't know how to do this")
+
 
 ; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
 ;       (false) => "not sure how to proceed")
