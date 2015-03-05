@@ -1,5 +1,8 @@
 (ns lexicase-redux.core)
-(use 'midje.sweet)
+(use 'midje.sweet
+     '(clojush interpreter pushstate)
+     '(clojush.instructions boolean code common numbers random-instructions string char vectors tag zip return input-output))
+
 
 ; The point here is to explore a framework in which Clojush Individuals
 ; (whatever they are) are not evaluated on any given rubric until the
@@ -57,11 +60,11 @@
                       script
                       {}))
 
-(def testing-dude (make-individual "foo bar"))
+(def testing-dude (make-individual '(1 2 integer_add)))
 
 (fact "an Individual should be able to report its attributes"
       (nil? (:uniqueID testing-dude)) => false
-      (:script testing-dude) => "foo bar"
+      (:script testing-dude) => '(1 2 integer_add)
       (:errors testing-dude) => {})
 
 ;; Errors and rubrics:
@@ -76,7 +79,7 @@
     (count (:script individual))))
 
 (fact "applying the length-rubric to testing-dude should return his script length"
-      (length-rubric testing-dude) => 7)
+      (length-rubric testing-dude) => 3)
 
 ; a random rubric
 (def random-rubric
@@ -86,9 +89,10 @@
 (fact "applying the length-rubric to testing-dude should return a number"
       (integer? (random-rubric testing-dude)) => true)
 
+(println (run-push '(1 2 integer_add false true boolean_or "foo bar" string_length) (make-push-state)))
 
-(fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
-      (false) => "not sure how to proceed")
+; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
+;       (false) => "not sure how to proceed")
 
 ;; An experiment in dumb-ass search:
 ;;
