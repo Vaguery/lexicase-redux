@@ -111,11 +111,19 @@
       (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
       )
 
-; (println (run-push '(in1 in2) (build-loaded-push-state [1 '2 7.3])))
+(println (run-push '(in1 in2) (build-loaded-push-state [1 7 8 7.3]))) ;; works
+; (println (run-push '(in1 in3) (build-loaded-push-state [1 '(3) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in3) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in3) (build-loaded-push-state [1 ('(3)) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in2) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
+(println (run-push '(in1 in2) (build-loaded-push-state [1 (quote (3)) 8 7.3]))) ;; maybe?
 
-(fact "I can create a push-state with code points as arguments"
-      "as it happens" => "I don't know how to do this")
 
+
+
+; (fact "I can create a push-state with code points as arguments"
+;       (:input (build-loaded-push-state '(1 quote ( 2 ) 3))) => (just ["foo"])
+;       )
 
 ; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
 ;       (false) => "not sure how to proceed")
