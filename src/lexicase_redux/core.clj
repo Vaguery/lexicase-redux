@@ -111,6 +111,8 @@
       (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
       )
 
+; (println (run-push '(in1 in2) (build-loaded-push-state [1 '2 7.3])))
+
 (fact "I can create a push-state with code points as arguments"
       "as it happens" => "I don't know how to do this")
 
