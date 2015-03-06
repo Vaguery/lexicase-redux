@@ -155,7 +155,13 @@
       (let [_ (set-error testing-dude :quux 8183)]
         (get-error testing-dude :quux) => 8183))
 
+;; hey how about all at once?
+(fact "When I set 100 error values in parallel, they all get set"
+  (let [dude (make-individual '(1 2 integer_subtract))]
+    (doall (pmap #(set-error dude % (rand-int 50)) (range 0 100)))
+    (count @(:errors dude)) => 100))
 
+;; hey what can rubric keys be?
 
 
 
