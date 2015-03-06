@@ -131,30 +131,29 @@
 ;       (set-error testing-dude :baz 8182)
 ;       (get-error testing-dude :baz) => 8182) ;; fails
 
-(defn set-error [individual error-key error-value]
-      (assoc-in individual
-                [:errors error-key]
-                error-value))
-
-
 ;; what I need is a different setup of an Individual...
 ;; (which feels weird), because so very imperative
 (defn make-individual [script]
-      (atom (Individual. (uuid)
-                         script
-                         {})))
+      (Individual. (uuid)
+                    script
+                    (atom {})))
 
 ;; make a new testing-dude
 (def testing-dude (make-individual '(1 2 integer_subtract)))
 
-;; revise set-error to use the approriate magic words
+; ;; revise set-error to use the approriate magic words
 (defn set-error [this-individual error-key error-value]
-      (swap! this-individual (assoc-in :errors [error-key] error-value)))
+      (swap! (:error this-individual) #(assoc % error-key error-value)))
 
-(set-error testing-dude :quux 8182) ;; fails
+(defn set-error [this-individual error-key error-value]
+  (swap! (:errors this-individual) #(assoc % error-key error-value)))
+
+(defn get-error [individual error-key]
+      (error-key @(:errors individual)))
 
 (fact "When I set an error in an individual, it sticks"
-      (get-error testing-dude :quux) => 8182)
+      (let [_ (set-error testing-dude :quux 8183)]
+        (get-error testing-dude :quux) => 8183))
 
 
 
