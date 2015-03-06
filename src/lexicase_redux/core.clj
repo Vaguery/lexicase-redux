@@ -1,7 +1,21 @@
 (ns lexicase-redux.core)
-(use 'midje.sweet)
+(use 'midje.sweet
+     '(clojush interpreter pushstate)
+     '(clojush.instructions boolean code common numbers random-instructions string char vectors tag zip return input-output))
 
-; the old one:
+
+; The point here is to explore a framework in which Clojush Individuals
+; (whatever they are) are not evaluated on any given rubric until the
+; value is needed. Very, very lazy in other words.
+
+; I'm also working in a rather linear, narrative style: 
+; interspersing tests and code, changing it as I go
+; rather than revising it in place. 
+
+; The selection algorithm in question is lexicase selection, used in Clojush for
+; selecting parents for reproduction.
+
+; the old one (currently in Clojush) is:
 ;
 ; (defn lexicase-selection
 ;   "Returns an individual that does the best on the fitness cases when considered one at a
@@ -28,72 +42,200 @@
 ;                  (rest cases)))))))
 
 
-; let's see if we can grow this
+; let's see if we can grow this using Midje tests and REPL-like interactive code
 
+; testing midje (should be happy in parallel REPL `autotest`)
 (fact "I can totally add integers, and Midje notices it!"
   (+ 66 11) => 77)
+
+; Individuals
+; An Individual is a prospective solution
+; (aka "Answer" in Tozier's agnostic ontology)
+(defrecord Individual [uniqueID script errors])
 
 ; Taken from https://gist.github.com/gorsuch/1418850
 (defn uuid []
   (str (java.util.UUID/randomUUID)))
 
-; I'll need an individual proxy, with some errors
-(defrecord Individual [uniqueID errors])
+; Individuals have a unique id, a script, and an errors map
 
-(def dude (Individual. 99 {:err1 1, :err2 2, :err3 3}))
+(defn make-individual [script]
+         (Individual. (uuid)
+                      script
+                      {}))
 
-(fact "dude should be able to report his ID and errors in detail"
-      (:uniqueID dude) => 99
-      (:errors dude) => {:err1 1, :err2 2, :err3 3},
-      (:err2 (:errors dude) 1) => 2)
+(def testing-dude (make-individual '(1 2 integer_add)))
 
-(defn get-error 
-      "returns the error associated with a given key, or nil"
-      [which-error individual]
-      (which-error (:errors individual)))
+(fact "an Individual should be able to report its attributes"
+      (nil? (:uniqueID testing-dude)) => false
+      (:script testing-dude) => '(1 2 integer_add)
+      (:errors testing-dude) => {})
 
-; However, if we're going to be lazy about evaluation, then...
-(fact "it should be OK to ask for an Individual's error that doesn't exist"
-      (get-error :err813 dude) => nil)
+;; Errors and rubrics:
+;;
+;; errors are created established by Rubrics, functions of an Individual
+;; which return a numeric value
+;; if a specified error doesn't have an associated Rubric, then the result is nil
 
-(defn set-error 
-      "assigns a new value to the :errors map of an individual"
-      [which-error individual new-value]
-      (assoc-in individual [:errors which-error] new-value))
+; an example rubric
+(def length-rubric
+  (fn script-length [individual]
+    (count (:script individual))))
 
-(facts "about `set-error`"
-      (fact "it should be OK to set an Individual's error that doesn't exist"
-        (get-error :err44 (set-error :err44 dude 8.1)) => 8.1)
-      (fact "it should be OK to overwrite an existing :error value"
-        (get-error :err1 (set-error :err1 dude -12)) => -12))
+(fact "applying the length-rubric to testing-dude should return his script length"
+      (length-rubric testing-dude) => 3)
 
-;; observation: This doesn't feel like how I should be setting up "laziness" in a Clojurish sense.
-;; What I think I would prefer is a way to bind the "things that evaluate" to :errors (somewhere)
-;; and then call those error-makers only when a `get` is received.
-;; But I don't know how to do that, so I'm (temporarily) willing to push
-;; responsibility upstream to the calling process....
+; a random rubric
+(def random-rubric
+  (fn random-int [individual]
+    (rand-int 100)))
+
+(fact "calling the random-rubric on testing-dude should return a number"
+      (integer? (random-rubric testing-dude)) => true)
+
+;; getting and setting errors with rubrics: a bit of infrastructure
+;;
+;; getting an existing rubric value from an individual's error hash
+
+(fact "if an error is set already in an individual, I can get it"
+      (let [error-dude
+            (assoc-in testing-dude
+                      [:errors :foo] 
+                      (length-rubric testing-dude))]
+            (:foo (:errors error-dude)) => 3))
+      
+;; but that's an awful way to get it, so how about...
+
+(defn get-error [individual error-key]
+      (error-key (:errors individual)))
+
+(fact "I can get a particular error from an individual's error map with `get-error`"
+      (let [error-dude
+            (assoc-in testing-dude
+                      [:errors :foo] 
+                      (length-rubric testing-dude))]
+            (get-error error-dude :foo) => 3))
+
+;; it's also a pretty awful way to set a value, so...
+(defn set-error [individual error-key error-value]
+      (assoc-in individual
+                [:errors error-key]
+                error-value))
+
+(fact "I can set a particular error in an error map with `set-error`"
+      (let [error-dude (set-error testing-dude :bar 8182)]
+           (get-error error-dude :bar) => 8182))
+
+;; however, set-error is creating a new dude, not _saving_ the error in one...
+; (fact "When I set an error in an individual, it should stick"
+;       (set-error testing-dude :baz 8182)
+;       (get-error testing-dude :baz) => 8182) ;; fails
+
+;; what I need is a different setup of an Individual...
+;; (which feels weird), because so very imperative
+(defn make-individual [script]
+      (Individual. (uuid)
+                    script
+                    (atom {})))
+
+;; make a new testing-dude
+(def testing-dude (make-individual '(1 2 integer_subtract)))
+
+; ;; revise set-error to use the appropriate magic words
+(defn set-error [this-individual error-key error-value]
+      (swap! (:error this-individual) #(assoc % error-key error-value)))
+
+(defn set-error [this-individual error-key error-value]
+  (swap! (:errors this-individual) #(assoc % error-key error-value)))
+
+(defn get-error [individual error-key]
+      (error-key @(:errors individual)))
+
+(fact "When I set an error in an individual, it sticks"
+      (let [_ (set-error testing-dude :quux 8183)]
+        (get-error testing-dude :quux) => 8183))
+
+;; hey how about all at once?
+(fact "When I set 100 error values in parallel, they all get set"
+  (let [dude (make-individual '(1 2 integer_subtract))]
+    (doall (pmap #(set-error dude % (rand-int 50)) (range 0 100)))
+    (count @(:errors dude)) => 100))
 
 
-; I'll need a population of those
 
-; This just uses integers for the keys in the error vector. It's not
-; hard to turn those into keywords (like :err3) if we'd prefer.
-(defn make-random-dude [num-errors]
-  (Individual. (uuid)
-               (reduce #(assoc %1 %2 (rand-int 10)) {} (range num-errors))))
 
-(defn make-population [popsize num-errors]
-  (repeatedly popsize #(make-random-dude num-errors)))
 
-(facts "about `make-population`"
-       (let [popsize 100
-             num-errors 10
-             population (make-population popsize num-errors)]
-         (fact "every individual should have a different unique id"
-               (count (distinct (map :uniqueID population))) => popsize)
-         ; Because I wanted a computed description for this fact, I had to
-         ; use the :midje/description map entry.
-         ; https://github.com/marick/Midje/wiki/Metadata#quoting-and-metadata
-         (fact {:midje/description (format "every individual should have %d error values" num-errors)}
-               (every? #(= num-errors (count (:errors %))) population) => true)))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;; "convenience function" for setting up push interpreter with inputs...
+(defn load-an-arg [arg my-state]
+  (push-item arg :input my-state))
+
+(defn build-loaded-push-state [inputs]
+      "returns a push-state with specified arguments in :input stack (in order)"
+      (reduce 
+        (fn [the-state the-input] (load-an-arg the-input the-state))
+        (make-push-state)
+        inputs))
+
+(fact "I can create a push-state with one argument on the :input stack"
+      (:input (load-an-arg 1 (make-push-state))) => (just [1]))
+
+(fact "I can create a push-state with loads of arguments"
+      (:input (build-loaded-push-state [1 2 3])) => (just [3 2 1])
+      (:input (build-loaded-push-state [1 -1.3 false])) => (just [false -1.3 1])
+      (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
+      )
+
+;; vectors work
+
+
+(println (run-push '(in1 in2) (build-loaded-push-state [1 7 8 7.3]))) ;; works
+; (println (run-push '(in1) (build-loaded-push-state [ 3 '(100 22 integer_mult)]))) ;; nope
+; (println (run-push '(in1 in3) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in3) (build-loaded-push-state [1 ('(3)) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in2) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
+; (println (run-push '(in1 in2) (build-loaded-push-state [1 (quote (3)) 8 7.3]))) ;; maybe?
+
+
+
+
+; (fact "I can create a push-state with code points as arguments"
+;       (:input (build-loaded-push-state ['(1 quote ( 2 ) 3)])) => (just ["foo"])
+;       )
+
+; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
+;       (false) => "not sure how to proceed")
+
+;; An experiment in dumb-ass search:
+;;
+;; 1. I make 100 random individuals
+;; - they have no errors
+;; - they have executable scripts
+
+
+;; 2. I make 100 rubrics 
+;; - for 100 I/O training cases, for example
+;; - maybe also a script complexity one
+;; 3. using lexicase selection, I pick 2 "parents"
+;; - filling in the errors only as needed
+;; 4. I _add_ 2 new offspring to the population by random crossover of parents
+;; - they have no errors
+;; 5. GOTO 3
+;; - NOTE: no culling from the population!
