@@ -8,6 +8,10 @@
 ; (whatever they are) are not evaluated on any given rubric until the
 ; value is needed. Very, very lazy in other words.
 
+; I'm also working in a rather linear, narrative style: 
+; interspersing tests and code, changing it as I go
+; rather than revising it in place. 
+
 ; The selection algorithm in question is lexicase selection, used in Clojush for
 ; selecting parents for reproduction.
 
@@ -49,7 +53,7 @@
 ; (aka "Answer" in Tozier's agnostic ontology)
 (defrecord Individual [uniqueID script errors])
 
-; Iaken from https://gist.github.com/gorsuch/1418850
+; Taken from https://gist.github.com/gorsuch/1418850
 (defn uuid []
   (str (java.util.UUID/randomUUID)))
 
@@ -86,8 +90,96 @@
   (fn random-int [individual]
     (rand-int 100)))
 
-(fact "applying the length-rubric to testing-dude should return a number"
+(fact "calling the random-rubric on testing-dude should return a number"
       (integer? (random-rubric testing-dude)) => true)
+
+;; getting and setting errors with rubrics: a bit of infrastructure
+;;
+;; getting an existing rubric value from an individual's error hash
+
+(fact "if an error is set already in an individual, I can get it"
+      (let [error-dude
+            (assoc-in testing-dude
+                      [:errors :foo] 
+                      (length-rubric testing-dude))]
+            (:foo (:errors error-dude)) => 3))
+      
+;; but that's an awful way to get it, so how about...
+
+(defn get-error [individual error-key]
+      (error-key (:errors individual)))
+
+(fact "I can get a particular error from an individual's error map with `get-error`"
+      (let [error-dude
+            (assoc-in testing-dude
+                      [:errors :foo] 
+                      (length-rubric testing-dude))]
+            (get-error error-dude :foo) => 3))
+
+;; it's also a pretty awful way to set a value, so...
+(defn set-error [individual error-key error-value]
+      (assoc-in individual
+                [:errors error-key]
+                error-value))
+
+(fact "I can set a particular error in an error map with `set-error`"
+      (let [error-dude (set-error testing-dude :bar 8182)]
+           (get-error error-dude :bar) => 8182))
+
+;; however, set-error is creating a new dude, not _saving_ the error in one...
+; (fact "When I set an error in an individual, it should stick"
+;       (set-error testing-dude :baz 8182)
+;       (get-error testing-dude :baz) => 8182) ;; fails
+
+(defn set-error [individual error-key error-value]
+      (assoc-in individual
+                [:errors error-key]
+                error-value))
+
+
+;; what I need is a different setup of an Individual...
+;; (which feels weird), because so very imperative
+(defn make-individual [script]
+      (atom (Individual. (uuid)
+                         script
+                         {})))
+
+;; make a new testing-dude
+(def testing-dude (make-individual '(1 2 integer_subtract)))
+
+;; revise set-error to use the approriate magic words
+(defn set-error [this-individual error-key error-value]
+      (swap! this-individual (assoc-in :errors [error-key] error-value)))
+
+(set-error testing-dude :quux 8182) ;; fails
+
+(fact "When I set an error in an individual, it sticks"
+      (get-error testing-dude :quux) => 8182)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
