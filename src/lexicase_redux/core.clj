@@ -200,25 +200,31 @@
 (fact "I can create a push-state with loads of arguments"
       (:input (build-loaded-push-state [1 2 3])) => (just [3 2 1])
       (:input (build-loaded-push-state [1 -1.3 false])) => (just [false -1.3 1])
-      (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
-      )
+      (:input (build-loaded-push-state ["foo"])) => (just ["foo"]))
 
-;; vectors work
-
-
-(println (run-push '(in1 in2) (build-loaded-push-state [1 7 8 7.3]))) ;; works
-; (println (run-push '(in1) (build-loaded-push-state [ 3 '(100 22 integer_mult)]))) ;; nope
-; (println (run-push '(in1 in3) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
-; (println (run-push '(in1 in3) (build-loaded-push-state [1 ('(3)) 8 7.3]))) ;; nope
-; (println (run-push '(in1 in2) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
-; (println (run-push '(in1 in2) (build-loaded-push-state [1 (quote (3)) 8 7.3]))) ;; maybe?
-
-
-
+;; vectors work as inputs, too!
+(fact "I can create a push-state with vector arguments"
+      (:input (build-loaded-push-state [ [1 2 1 3] ])) => (just [ [ 1 2 1 3 ] ])
+      (:input (build-loaded-push-state [ [false true false] ])) => 
+        (just [ [false true false ]])
+      (:input (build-loaded-push-state [ ["foo" "bar" "baz"]])) => 
+        (just [ ["foo" "bar" "baz"] ])
+      (:input (build-loaded-push-state [ [1.9 -991.2e6 +8.1]])) => 
+        (just [ [1.9 -9.912E8 8.1] ]))
 
 ; (fact "I can create a push-state with code points as arguments"
-;       (:input (build-loaded-push-state ['(1 quote ( 2 ) 3)])) => (just ["foo"])
-;       )
+;       (:input (build-loaded-push-state ['(1 quote ( 2 ) 3)])) => (just ["foo"]))
+;
+;; fails
+
+;; I can run programs and set their inputs
+(fact "I can set the inputs of a push-state and run a program that uses them"
+      (let [run-dude (run-push '(in1 in2 in3 in4 in5) (build-loaded-push-state [-1.0001 7 8 7.3 ["a" "b"]])) ]
+      (:integer run-dude) => (just [7 8])
+      (:vector_string run-dude) => (just [ ["a" "b"] ])
+      (:float run-dude) => (just [-1.0001 7.3])))
+
+
 
 ; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
 ;       (false) => "not sure how to proceed")
