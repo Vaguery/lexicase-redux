@@ -141,7 +141,7 @@
 ;; make a new testing-dude
 (def testing-dude (make-individual '(1 2 integer_subtract)))
 
-; ;; revise set-error to use the approriate magic words
+; ;; revise set-error to use the appropriate magic words
 (defn set-error [this-individual error-key error-value]
       (swap! (:error this-individual) #(assoc % error-key error-value)))
 
@@ -160,11 +160,6 @@
   (let [dude (make-individual '(1 2 integer_subtract))]
     (doall (pmap #(set-error dude % (rand-int 50)) (range 0 100)))
     (count @(:errors dude)) => 100))
-
-;; hey what can rubric keys be?
-
-
-
 
 
 
@@ -208,18 +203,21 @@
       (:input (build-loaded-push-state ["foo"])) => (just ["foo"])
       )
 
+;; vectors work
+
+
 (println (run-push '(in1 in2) (build-loaded-push-state [1 7 8 7.3]))) ;; works
-; (println (run-push '(in1 in3) (build-loaded-push-state [1 '(3) 8 7.3]))) ;; nope
+; (println (run-push '(in1) (build-loaded-push-state [ 3 '(100 22 integer_mult)]))) ;; nope
 ; (println (run-push '(in1 in3) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
 ; (println (run-push '(in1 in3) (build-loaded-push-state [1 ('(3)) 8 7.3]))) ;; nope
 ; (println (run-push '(in1 in2) (build-loaded-push-state [1 (3) 8 7.3]))) ;; nope
-(println (run-push '(in1 in2) (build-loaded-push-state [1 (quote (3)) 8 7.3]))) ;; maybe?
+; (println (run-push '(in1 in2) (build-loaded-push-state [1 (quote (3)) 8 7.3]))) ;; maybe?
 
 
 
 
 ; (fact "I can create a push-state with code points as arguments"
-;       (:input (build-loaded-push-state '(1 quote ( 2 ) 3))) => (just ["foo"])
+;       (:input (build-loaded-push-state ['(1 quote ( 2 ) 3)])) => (just ["foo"])
 ;       )
 
 ; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
@@ -230,6 +228,8 @@
 ;; 1. I make 100 random individuals
 ;; - they have no errors
 ;; - they have executable scripts
+
+
 ;; 2. I make 100 rubrics 
 ;; - for 100 I/O training cases, for example
 ;; - maybe also a script complexity one
