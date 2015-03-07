@@ -234,10 +234,14 @@
 (defn blocky-script [len]
   (partition-all 5 (uniform-push-script len)))
 
-;; apparently this builds 10 random scripts, and runs each with a variety of inputs, collects the topmost :integer value, and displays the various outputs
+;; apparently this builds 10 random scripts, and runs each with a variety of inputs, reports the :integer stack
 (dotimes [n 10]
-  (let [rando-dude (blocky-script 100)]
-  (println (map #(first (:integer (run-push rando-dude (build-loaded-push-state [% 2])))) (range -10 10)))))
+  (let [rando-dude (blocky-script 50)]
+       (println "\n" rando-dude "\n")
+       (println (clojure.string/join 
+                   "\n"
+                   (map #(:integer 
+                         (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
 
 
 ;; (^^^^^ to be cleaned up)
