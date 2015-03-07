@@ -1,6 +1,6 @@
 (ns lexicase-redux.core)
 (use 'midje.sweet
-     '(clojush interpreter pushstate)
+     '(clojush interpreter pushstate random)
      '(clojush.instructions boolean code common numbers random-instructions string char vectors tag zip return input-output))
 
 
@@ -155,27 +155,15 @@
       (let [_ (set-error testing-dude :quux 8183)]
         (get-error testing-dude :quux) => 8183))
 
-;; hey how about all at once?
+;; hey how about all at once? (parallel evaluation)
 (fact "When I set 100 error values in parallel, they all get set"
   (let [dude (make-individual '(1 2 integer_subtract))]
     (doall (pmap #(set-error dude % (rand-int 50)) (range 0 100)))
     (count @(:errors dude)) => 100))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
+;       )
 
 
 
@@ -225,9 +213,34 @@
       (:float run-dude) => (just [-1.0001 7.3])))
 
 
+;; Let's make a simple random-code generator
+(defn any-instruction []
+  (rand-nth (into [] @registered-instructions)))
+(defn some-integer []
+  (- (rand-int 1024) 512))
+(defn some-float []
+  (float (/ (some-integer) 32)))
+(defn some-bool []
+  (rand-nth [true false]))
+(defn some-input []
+  (rand-nth ['in1 'in2]))
 
-; (fact "an Individual's error can be set by a rubric, with rubric 'name' as a key"
-;       (false) => "not sure how to proceed")
+(defn any-token []
+  (rand-nth [any-instruction some-integer some-float some-bool some-input]))
+
+(defn uniform-push-script [len]
+  (take len (repeatedly #((any-token)))))
+
+(defn blocky-script [len]
+  (partition-all 5 (uniform-push-script len)))
+
+;; apparently this builds 10 random scripts, and runs each with a variety of inputs, collects the topmost :integer value, and displays the various outputs
+(dotimes [n 10]
+  (let [rando-dude (blocky-script 100)]
+  (println (map #(first (:integer (run-push rando-dude (build-loaded-push-state [% 2])))) (range -10 10)))))
+
+
+;; (^^^^^ to be cleaned up)
 
 ;; An experiment in dumb-ass search:
 ;;
