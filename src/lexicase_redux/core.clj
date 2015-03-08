@@ -210,10 +210,17 @@
 
 
 (fact "I can load code points as arguments and invoke them (clojush 2.0.21)"
+      (:input (build-loaded-push-state ['[1 2 3] '3 '(1 2 in1) ])) => 
+              (just ['(1 2 in1) '3 '[1 2 3]])
       (let [run-dude 
-        (run-push '(1 1 in1 2 in1 3 in1) 
-                   (build-loaded-push-state ['(integer_add)]))]
-        (:integer run-dude) => (just [7])))
+           (run-push '(1 1 in1 2 in1 3 in1) 
+                     (build-loaded-push-state ['(integer_add)]))]
+           (:integer run-dude) => (just [7])))
+
+
+;; I can set interpreter parameters for individual runs as well
+; (fact "I can set the number of steps the interpreter will run"
+;       (:input (build-loaded-push-state []) ) => ())
 
 
 ;; Let's make a simple random-code generator
@@ -229,7 +236,11 @@
   (fn [] (symbol (str "in" (inc (rand-nth (range how-many)))))))
 
 (defn any-token [args]
-  (rand-nth [any-instruction some-integer some-float some-bool (some-input args)]))
+  (rand-nth [any-instruction 
+             some-integer 
+             some-float 
+             some-bool 
+             (some-input args)]))
 
 ; (println (any-token 9))
 
@@ -245,7 +256,7 @@
 
 ;; apparently this builds 10 random scripts, and runs each with a variety of inputs, reports the :integer stack
 (dotimes [n 10]
-  (let [rando-dude (blocky-script 2 50)]
+  (let [rando-dude (blocky-script 2 200)]
        (println "\n" rando-dude "\n")
        (println (clojure.string/join 
                    "\n"
