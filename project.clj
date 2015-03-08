@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [midje "1.6.3"]
-                 [clojush "2.0.19"]]
+                 [clojush "2.0.21"]]
   :plugins [[lein-midje "3.1.3"]])
 
 

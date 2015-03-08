@@ -200,10 +200,6 @@
       (:input (build-loaded-push-state [ [1.9 -991.2e6 +8.1]])) => 
         (just [ [1.9 -9.912E8 8.1] ]))
 
-; (fact "I can create a push-state with code points as arguments"
-;       (:input (build-loaded-push-state ['(1 quote ( 2 ) 3)])) => (just ["foo"]))
-;
-;; fails
 
 ;; I can run programs and set their inputs
 (fact "I can set the inputs of a push-state and run a program that uses them"
@@ -211,6 +207,13 @@
       (:integer run-dude) => (just [7 8])
       (:vector_string run-dude) => (just [ ["a" "b"] ])
       (:float run-dude) => (just [-1.0001 7.3])))
+
+
+(fact "I can load code points as arguments and invoke them (clojush 2.0.21)"
+      (let [run-dude 
+        (run-push '(1 1 in1 2 in1 3 in1) 
+                   (build-loaded-push-state ['(integer_add)]))]
+        (:integer run-dude) => (just [7])))
 
 
 ;; Let's make a simple random-code generator
@@ -235,16 +238,15 @@
   (partition-all 5 (uniform-push-script len)))
 
 ;; apparently this builds 10 random scripts, and runs each with a variety of inputs, reports the :integer stack
-(dotimes [n 10]
-  (let [rando-dude (blocky-script 50)]
-       (println "\n" rando-dude "\n")
-       (println (clojure.string/join 
-                   "\n"
-                   (map #(:integer 
-                         (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
+; (dotimes [n 10]
+;   (let [rando-dude (blocky-script 50)]
+;        (println "\n" rando-dude "\n")
+;        (println (clojure.string/join 
+;                    "\n"
+;                    (map #(:integer 
+;                          (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
 
-
-;; (^^^^^ to be cleaned up)
+;; (^^^^^ to be cleaned up; just an example!)
 
 ;; An experiment in dumb-ass search:
 ;;
