@@ -225,26 +225,32 @@
   (float (/ (some-integer) 32)))
 (defn some-bool []
   (rand-nth [true false]))
-(defn some-input []
-  (rand-nth ['in1 'in2]))
+(defn some-input [how-many] ;; returns a function!
+  (fn [] (symbol (str "in" (inc (rand-nth (range how-many)))))))
 
-(defn any-token []
-  (rand-nth [any-instruction some-integer some-float some-bool some-input]))
+(defn any-token [args]
+  (rand-nth [any-instruction some-integer some-float some-bool (some-input args)]))
 
-(defn uniform-push-script [len]
-  (take len (repeatedly #((any-token)))))
+; (println (any-token 9))
 
-(defn blocky-script [len]
-  (partition-all 5 (uniform-push-script len)))
+(defn uniform-push-script [args len]
+  (take len (repeatedly #((any-token args)))))
+
+; (println (uniform-push-script 2 88))
+
+(defn blocky-script [args len]
+  (partition-all 5 (uniform-push-script args len)))
+
+; (println (blocky-script 2 100))
 
 ;; apparently this builds 10 random scripts, and runs each with a variety of inputs, reports the :integer stack
-; (dotimes [n 10]
-;   (let [rando-dude (blocky-script 50)]
-;        (println "\n" rando-dude "\n")
-;        (println (clojure.string/join 
-;                    "\n"
-;                    (map #(:integer 
-;                          (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
+(dotimes [n 10]
+  (let [rando-dude (blocky-script 2 50)]
+       (println "\n" rando-dude "\n")
+       (println (clojure.string/join 
+                   "\n"
+                   (map #(:integer 
+                         (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
 
 ;; (^^^^^ to be cleaned up; just an example!)
 
