@@ -273,7 +273,10 @@
 ;; :inputs stack. But we have that!
 
 (defn any-abstract-token [arg-count erc-count]
-  (rand-nth [(any-instruction) ((some-input (+ arg-count erc-count)))]))
+  (rand-nth [(any-instruction) ;; biases a bit
+             (any-instruction)
+             ((some-input arg-count))
+             ((some-input (+ arg-count erc-count)))]))
 
 ; (println (any-abstract-token 10))
 
@@ -294,24 +297,20 @@
                                (some-bool)
                                (uniform-abstract-push-script arg-count erc-count 5)])))))
 
-(def constants (select-constants 2 50 50))
+(def constants (select-constants 3 50 50))
 (println "constants:" constants)
 
-(def mvc-dude (blocky-abstract-script 2 50 50))
+(def mvc-dude (blocky-abstract-script 3 50 50))
 (println "\n\nmvc-dude:" mvc-dude)
 
-(def mvc-dude-having-run (run-push '(in1 in2) 
-                           (build-loaded-push-state (concat constants [2 1]))))
+(def mvc-dude-having-run (run-push mvc-dude
+                           (build-loaded-push-state (concat constants ["foo" 2 1]))))
 
-(println (:integer mvc-dude-having-run))
-
-
-;; just trying to make sure the input arguments are prepended to the :input stack
-(println "mvc-dude inputs:\n-" (clojure.string/join "\n- " 
-  (map pr-str (:input mvc-dude-having-run))))
+;; let's see what they look like inside:
+(clojure.pprint/pprint mvc-dude-having-run)
 
 
-;; (^^^^^ to be cleaned up; just an example!)
+;; (^^^^^ to be cleaned up; just an exploration after all!)
 
 ;; An experiment in dumb-ass search:
 ;;
