@@ -235,33 +235,81 @@
 (defn some-input [how-many] ;; returns a function!
   (fn [] (symbol (str "in" (inc (rand-nth (range how-many)))))))
 
-(defn any-token [args]
+(defn any-token [arg-count]
   (rand-nth [any-instruction 
              some-integer 
              some-float 
              some-bool 
-             (some-input args)]))
+             (some-input arg-count)]))
 
 ; (println (any-token 9))
 
-(defn uniform-push-script [args len]
-  (take len (repeatedly #((any-token args)))))
+(defn uniform-push-script [arg-count len]
+  (take len (repeatedly #((any-token arg-count)))))
 
 ; (println (uniform-push-script 2 88))
 
-(defn blocky-script [args len]
-  (partition-all 5 (uniform-push-script args len)))
+(defn blocky-script [arg-count len]
+  (partition-all 5 (uniform-push-script arg-count len)))
 
-; (println (blocky-script 2 100))
+;; apparently this builds 10 random "traditional" scripts, and runs each with a variety of inputs, reports the :integer stack
+; (dotimes [n 10]
+;   (let [rando-dude (blocky-script 2 200)]
+;        (println "\n" rando-dude "\n")
+;        (println (clojure.string/join 
+;                    "\n"
+;                    (map #(:integer 
+;                          (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
 
-;; apparently this builds 10 random scripts, and runs each with a variety of inputs, reports the :integer stack
-(dotimes [n 10]
-  (let [rando-dude (blocky-script 2 200)]
-       (println "\n" rando-dude "\n")
-       (println (clojure.string/join 
-                   "\n"
-                   (map #(:integer 
-                         (run-push rando-dude (build-loaded-push-state [% 2]))) (range -64 64 15))))))
+
+
+;; that's nice, but it's not how I'm used to dealing with pushlike languages
+;; let me separate the model and the view a bit here
+;;
+;; "MVC style" scripts for pushlike languages (Push, Nudge) move all
+;; the "ERC" values away to a separate data store, separating the abstract
+;; logical structure of the script from the particular constants assigned.
+;; Typically I'd expect this to be a persistent store like the Clojush
+;; :inputs stack. But we have that!
+
+(defn any-abstract-token [arg-count erc-count]
+  (rand-nth [(any-instruction) ((some-input (+ arg-count erc-count)))]))
+
+; (println (any-abstract-token 10))
+
+(defn uniform-abstract-push-script [arg-count erc-count len]
+  (take len (repeatedly #(any-abstract-token arg-count erc-count))))
+
+; (println (uniform-abstract-push-script 10 10))
+
+(defn blocky-abstract-script [arg-count erc-count len]
+  (partition-all 5 (uniform-abstract-push-script arg-count erc-count len)))
+
+; (println (blocky-abstract-script 10 10))
+
+(defn select-constants [arg-count erc-count number]
+  (vec (take number (
+        repeatedly #(rand-nth [(some-integer)
+                               (some-float) 
+                               (some-bool)
+                               (uniform-abstract-push-script arg-count erc-count 5)])))))
+
+(def constants (select-constants 2 50 50))
+(println "constants:" constants)
+
+(def mvc-dude (blocky-abstract-script 2 50 50))
+(println "\n\nmvc-dude:" mvc-dude)
+
+(def mvc-dude-having-run (run-push '(in1 in2) 
+                           (build-loaded-push-state (concat constants [2 1]))))
+
+(println (:integer mvc-dude-having-run))
+
+
+;; just trying to make sure the input arguments are prepended to the :input stack
+(println "mvc-dude inputs:\n-" (clojure.string/join "\n- " 
+  (map pr-str (:input mvc-dude-having-run))))
+
 
 ;; (^^^^^ to be cleaned up; just an example!)
 
@@ -275,6 +323,7 @@
 ;; 2. I make 100 rubrics 
 ;; - for 100 I/O training cases, for example
 ;; - maybe also a script complexity one
+
 ;; 3. using lexicase selection, I pick 2 "parents"
 ;; - filling in the errors only as needed
 ;; 4. I _add_ 2 new offspring to the population by random crossover of parents
